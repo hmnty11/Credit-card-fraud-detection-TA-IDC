@@ -7,6 +7,4 @@ Anggota kelompok:
 4.MUHAMMAD FATHIR NIM : 2902730432
 5.SIMONE RAPHAEL ERUS NIM : 2902703394
 
-Bagian 1: Pengumpulan Data 
-- Simone raphael erus
 # Pemilihan dataset Credit Card Fraud memiliki relevansinya dengan permasalahan nyata di dunia keuangan, yaitu mendeteksi transaksi penipuan yang dapat merugikan pihak pengguna maupun institusi. Dataset ini sesuai untuk studi kasus yang akan dikembangkan karena dapat digunakan untuk membangun model klasifikasi dalam membedakan transaksi normal dan transaksi fraud. Selain itu, dataset ini memiliki struktur data yang bersih tanpa missing values serta didominasi oleh data numerik, sehingga memudahkan proses analisis dan pengolahan menggunakan metode data science.
