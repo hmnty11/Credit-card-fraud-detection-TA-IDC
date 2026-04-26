@@ -1,5 +1,5 @@
 # Introduction to Data Science : TBHA - LEC
-## Team Assignment 1 – Group 6
+## Team Assignment 1 & 2 – Group 6
 
 ### Anggota Kelompok
 
@@ -23,84 +23,66 @@ Penipuan kartu kredit merupakan permasalahan nyata di industri keuangan yang dap
 **Sumber:** [Kaggle – Credit Card Fraud Detection](https://www.kaggle.com/datasets/mlg-ulb/creditcardfraud)  
 **Deskripsi singkat:**
 - Berisi transaksi kartu kredit oleh pemegang kartu Eropa pada September 2013.
-- Jumlah transaksi: 284.807, dengan 492 transaksi fraud (0,172%).
+- Jumlah transaksi awal: 284.807, dengan 492 transaksi fraud (0,172%).
 - Fitur: `Time`, `V1` … `V28` (hasil transformasi PCA), `Amount`, dan `Class` (label: 0 = normal, 1 = fraud).
 - **Keunggulan dataset:**
   - Tidak memiliki *missing values*.
   - Didominasi fitur numerik (hasil PCA) sehingga mudah diolah.
   - Representasi *imbalanced class* yang menantang, sesuai dengan kondisi nyata.
 
-### 3. Relevansi dengan Data Science
-- **Masalah:** Klasifikasi biner (normal vs fraud).
-- **Tahapan yang akan dilakukan:**
-  1. Eksplorasi data (EDA) – memahami distribusi, cek ketidakseimbangan kelas.
-  2. Preprocessing – normalisasi `Amount` dan `Time`, mengatasi *class imbalance* (misal dengan SMOTE atau undersampling).
-  3. Pemodelan – menggunakan algoritma seperti Logistic Regression, Random Forest, atau XGBoost.
-  4. Evaluasi – menggunakan metrik seperti *precision*, *recall*, *F1-score*, dan *AUC-ROC* (karena akurasi tidak sesuai untuk data tidak seimbang).
-- **Tujuan akhir:** Menghasilkan model yang dapat memprediksi transaksi fraud dengan tingkat deteksi tinggi dan *false positive* rendah.
+---
 
-### 4. Rencana Pengembangan
-| Tahap | Metode/Alat |
-|-------|--------------|
-| Pengumpulan data | unduh CSV |
-| Eksplorasi data | Pandas, Matplotlib, Seaborn |
-| Preprocessing | Scikit-learn (StandardScaler, SMOTE) |
-| Pemodelan | Scikit-learn, XGBoost |
-| Evaluasi | Classification report, confusion matrix, ROC curve |
+## 🔍 Exploratory Data Analysis (EDA)
 
+### Statistik Deskriptif
+Kami menghitung statistik dasar untuk fitur numerik menggunakan `df.describe()` dan fungsi skewness/kurtosis dari `scipy.stats`.
 
-### 5. Eksplorasi Awal
-Dataset dibaca menggunakan pandas.
+| Fitur | Mean | Std | Skewness | Kurtosis |
+|-------|------|-----|----------|----------|
+| Time | 94.813,86 | 47.488,15 | -0,12 | -1,21 |
+| Amount | 88,35 | 250,12 | 16,98 | 498,52 |
+| V1..V28 | ~0 | ~1 | ~0 | ~0 |
 
-```python
-import pandas as pd
-df = pd.read_csv('creditcard.csv')
-print(df.shape)          # (284807, 31)
-print(df.info())
-```
-Hasil:
-- Jumlah baris: 284.807
-- Jumlah kolom: 31 (30 fitur numerik + 1 target Class)
-- Tidak ada missing values pada kolom numerik.
-- Kolom Time dan Amount memiliki rentang nilai yang sangat berbeda dengan fitur PCA (V1–V28).
+- **Skewness Amount yang sangat tinggi** menunjukkan distribusi menceng kanan (banyak transaksi kecil, beberapa sangat besar).
+- **Kurtosis Amount** sangat tinggi → banyak outlier ekstrem.
 
-### 6. Pembersihan Data 
-**Identifikasi Masalah**
+### Korelasi Antar Fitur
+- Matriks korelasi divisualisasikan dengan **heatmap**.
+- Fitur PCA (`V1`..`V28`) memiliki korelasi mendekati nol satu sama lain (sesuai sifat PCA).
+- Korelasi `Amount` dengan `Class` sangat rendah (0,02), sedangkan beberapa fitur PCA memiliki korelasi lemah hingga sedang dengan `Class` (misal V11, V12, V14).
 
-| Masalah | Ada? | Keterangan |
-|---------|------|-------------|
-| Missing values | Tidak | Semua kolom memiliki 284.807 non-null. |
-| Outliers ekstrem | Ya | Pada kolom Amount dan Time. |
-| Duplikasi data | Ya | Terdapat 1.081 baris duplikat. |
+### Identifikasi Outlier
+- **Metode IQR** pada `Amount` mengidentifikasi transaksi dengan nilai di luar batas `Q1 - 1.5*IQR` dan `Q3 + 1.5*IQR`.
+- Sebanyak **31.685 outlier** dihapus dari kolom `Amount` (setelah duplikat dihapus).
+- Outlier pada `Time` tidak ditangani karena tidak signifikan terhadap model.
 
-**Penanganan Duplikasi**
-Kami menghapus baris duplikat menggunakan drop_duplicates().
+### Visualisasi
+- **Histogram Amount** menunjukkan distribusi miring dengan ekor panjang.
+- **Countplot Class** memperlihatkan ketidakseimbangan kelas yang ekstrem.
+- **Scatter plot V1 vs V2** menunjukkan bahwa titik fraud (merah) cenderung mengelompok di area tertentu, namun masih bercampur dengan normal.
+- **Heatmap korelasi** menegaskan bahwa fitur PCA tidak berkorelasi.
 
-```python
-df = df.drop_duplicates()
-print(df.shape)  # (283726, 31)
-```
-Alasan: Duplikat dapat menyebabkan bias dalam model, terutama pada data yang tidak seimbang (fraud sangat sedikit).
+### Interpretasi EDA
+- **Pola utama:** Data sangat tidak seimbang; fitur PCA sudah baik untuk modelling; `Amount` perlu ditangani outlier dan diskalakan.
+- **Outlier signifikan:** Ya, pada `Amount`. Telah dihapus menggunakan IQR.
+- **Korelasi:** Fitur PCA tidak berkorelasi satu sama lain; beberapa memiliki korelasi kecil dengan `Class`. Tidak ada fitur yang redundan.
 
-**Penanganan Outlier**
-Outlier pada kolom Amount diidentifikasi menggunakan metode IQR (Interquartile Range).
+---
 
-```python
-Q1 = df['Amount'].quantile(0.25)
-Q3 = df['Amount'].quantile(0.75)
-IQR = Q3 - Q1
-lower = Q1 - 1.5*IQR
-upper = Q3 + 1.5*IQR
-df = df[(df['Amount'] >= lower) & (df['Amount'] <= upper)]
-```
+## ⚙️ Preprocessing & Feature Engineering
 
-Outlier ekstrem pada Amount (misal transaksi hingga >25.000) dapat mengganggu normalisasi dan kinerja model. Kami memilih IQR karena distribusi Amount tidak simetris.
-Setelah penghapusan outlier, jumlah baris menjadi 252.041.
+### A. Pembersihan Data
+1. **Duplikat:** Dihapus (1.081 baris).
+2. **Outlier Amount:** Dihapus menggunakan metode IQR (31.685 baris).
+   - `df` akhir setelah cleaning: **252.041 baris**.
 
-### 7. Data Preprocessing 
-**Standarisasi (Normalisasi)**
-Karena Amount dan Time memiliki rentang yang sangat berbeda dengan fitur PCA, kami melakukan standarisasi menggunakan StandardScaler dari scikit-learn.
+### B. Transformasi Data
 
+#### Encoding Kategorikal
+Dataset tidak memiliki fitur kategorikal (semua numerik). Tidak diperlukan encoding.
+
+#### Standardisasi (Normalisasi)
+Karena `Amount` dan `Time` memiliki skala berbeda dengan fitur PCA, kami melakukan **StandardScaler**:
 ```python
 from sklearn.preprocessing import StandardScaler
 scaler = StandardScaler()
@@ -108,30 +90,67 @@ df['Amount_scaled'] = scaler.fit_transform(df[['Amount']])
 df['Time_scaled'] = scaler.fit_transform(df[['Time']])
 df = df.drop(['Amount', 'Time'], axis=1)
 ```
-Standarisasi diperlukan agar semua fitur memiliki skala yang sama (mean=0, std=1), sehingga algoritma berbasis jarak (seperti SVM, KNN) tidak bias terhadap fitur dengan skala besar.
+- Tujuan: Agar semua fitur memiliki mean 0 dan std 1, sehingga model berbasis jarak (SVM, KNN) tidak bias.
 
-**Reduksi Dimensi**
-Kami tidak melakukan reduksi dimensi karena jumlah fitur (30) masih tergolong kecil dan PCA sudah diterapkan pada data asli (fitur V1–V28 merupakan hasil PCA dari data asli).
+#### Feature Engineering (Pembuatan Fitur Baru)
+- Dibuat fitur `Amount_abs` = nilai absolut dari `Amount_scaled` untuk menangkap transaksi dengan nilai ekstrem (baik positif maupun negatif).
 
-**Visualisasi Sebelum dan Sesudah Preprocessing** 
-Histogram Amount (Sebelum vs Sesudah Scaling)
-Sebelum: Distribusi menceng ke kanan (skewed), banyak outlier.
-Sesudah: Distribusi mendekati normal (mean 0, std 1).
+### C. Feature Selection & Extraction
 
-**Perbandingan Jumlah Fraud vs Normal**
-Tetap sangat tidak seimbang (fraud ~0.17%). Visualisasi dengan countplot menunjukkan dominasi kelas normal.
+#### PCA (Principal Component Analysis)
+- Kami menerapkan PCA pada seluruh fitur (setelah scaling) untuk melihat reduksi dimensi.
+- **Hasil:** 90% varians dapat dijelaskan oleh **10 komponen pertama**, 95% oleh **12 komponen**.
+- Visualisasi 2D (PC1 vs PC2) menunjukkan pemisahan yang tidak sempurna antara fraud dan normal.
 
-**Heatmap Korelasi**
-Korelasi antar fitur PCA sangat rendah (mendekati 0), sesuai dengan sifat PCA yang menghasilkan komponen tidak berkorelasi.
+#### Feature Importance dengan Random Forest
+- Karena data sangat tidak seimbang, kami mengambil sampel seimbang (fraud 1:5 normal).
+- Random Forest (100 trees) menghitung importance setiap fitur.
+- **10 fitur teratas:** V14, V12, V10, V17, V11, V4, V9, V16, V3, V7.
+- Fitur-fitur ini dapat digunakan sebagai kandidat untuk model akhir.
 
-**Scatter Plot (V1 vs V2)**
-Titik merah (fraud) cenderung berada di area tertentu, namun masih bercampur dengan normal. Menunjukkan perlunya model yang lebih kompleks.
+### D. Output Akhir
+Setelah feature engineering, dataset memiliki:
+- **252.041 baris** dan **32 kolom** (30 fitur asli + `Amount_scaled` + `Time_scaled` + `Amount_abs`).
+- Siap untuk pemodelan klasifikasi (dengan penanganan imbalance class seperti SMOTE).
 
-### Kesimpulan setelah Preprocessing
-| Pertanyaan | Jawaban |
-|------------|---------|
-| Apakah dataset sudah cukup bersih untuk analisis? | Ya. Missing values tidak ada, duplikat dihapus, outlier pada Amount telah ditangani, dan fitur telah distandarisasi. |
-| Apakah masih ada masalah? | Ketidakseimbangan kelas (fraud sangat sedikit) masih menjadi tantangan utama. Perlu teknik resampling (SMOTE, undersampling) pada tahap pemodelan. |
-| Tantangan utama dalam proses ini | Menentukan batas IQR untuk outlier tanpa menghilangkan transaksi fraud yang sah (tidak ada fraud yang terhapus karena semua fraud memiliki Amount relatif kecil). |
+---
 
-Dataset siap untuk dilanjutkan ke tahap pemodelan machine learning (klasifikasi biner) dengan menangani ketidakseimbangan kelas terlebih dahulu.
+## 📈 Kesimpulan dan Langkah Selanjutnya
+
+| Tahap | Status |
+|-------|--------|
+| EDA lengkap | ✅ Selesai |
+| Preprocessing (missing, duplikat, outlier) | ✅ Selesai |
+| Standardisasi | ✅ Selesai |
+| Feature Engineering (Amount_abs, PCA, Feature Importance) | ✅ Selesai |
+| Dataset siap untuk modeling | ✅ |
+
+**Langkah berikutnya:**
+- Membangun model klasifikasi (Logistic Regression, Random Forest, XGBoost).
+- Menangani ketidakseimbangan kelas dengan SMOTE atau class weights.
+- Evaluasi dengan precision, recall, F1-score, AUC-ROC.
+
+---
+
+## 📁 Daftar File dalam Repository
+
+- `CC Fraud Detection.ipynb` – Preprocessing awal, EDA, visualisasi.
+- `CC Fraud Detection - Transformation and Feature Selection.ipynb` – Standardisasi, PCA, Feature Importance, pembuatan fitur baru.
+- `creditcard.csv` – Dataset asli (dengan Git LFS).
+- `requirements.txt` – Daftar library Python.
+- `README.md` – Dokumentasi proyek.
+- `LICENSE` – Lisensi MIT.
+
+---
+
+## 🔗 Cara Menjalankan
+
+1. Clone repository ini.
+2. Install dependencies: `pip install -r requirements.txt`
+3. Buka notebook `.ipynb` menggunakan Jupyter atau VS Code.
+4. Jalankan semua cell secara berurutan.
+
+---
+
+**Dibuat untuk memenuhi tugas**  
+*Introduction to Data Science – COSC6028*
