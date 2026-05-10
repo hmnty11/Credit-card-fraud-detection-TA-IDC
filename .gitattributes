@@ -1,3 +1,4 @@
 .csv filter=lfs diff=lfs merge=lfs -text
 creditcard.csv filter=lfs diff=lfs merge=lfs -text
 dataset[[:space:]]baru[[:space:]]CC.csv filter=lfs diff=lfs merge=lfs -text
+dataset_baru_CC.csv filter=lfs diff=lfs merge=lfs -text
